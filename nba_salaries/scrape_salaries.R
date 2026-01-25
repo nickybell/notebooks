@@ -14,7 +14,8 @@ b$Page$navigate("https://hoopshype.com/salaries/teams/")
 b$Page$loadEventFired()
 Sys.sleep(2)
 
-teams_json <- b$Runtime$evaluate("
+teams_json <- b$Runtime$evaluate(
+  "
   JSON.stringify(
     Array.from(document.querySelectorAll('table tbody tr')).map(row => {
       const img = row.querySelector('img');
@@ -27,7 +28,8 @@ teams_json <- b$Runtime$evaluate("
       };
     })
   );
-")$result$value
+"
+)$result$value
 
 team_lookup <- fromJSON(teams_json)
 team_map <- setNames(team_lookup$team, team_lookup$teamId)
@@ -46,25 +48,34 @@ for (page_num in 1:31) {
 
   for (i in 1:20) {
     Sys.sleep(0.5)
-    page_html <- b$Runtime$evaluate("document.documentElement.outerHTML")$result$value
+    page_html <- b$Runtime$evaluate(
+      "document.documentElement.outerHTML"
+    )$result$value
     page <- read_html(page_html)
     salary_table <- html_table(html_node(page, "table"))
-    
+
     # Check that table has "Player" column and valid data
-    if (!"Player" %in% names(salary_table)) next
-    if (nrow(salary_table) == 0) next
-    
+    if (!"Player" %in% names(salary_table)) {
+      next
+    }
+    if (nrow(salary_table) == 0) {
+      next
+    }
+
     current_first_player <- salary_table$Player[1]
-    if (!is.null(current_first_player) && 
-        !is.na(current_first_player) && 
-        current_first_player != last_first_player) {
+    if (
+      !is.null(current_first_player) &&
+        !is.na(current_first_player) &&
+        current_first_player != last_first_player
+    ) {
       last_first_player <- current_first_player
       break
     }
   }
-  
+
   # Extract team IDs from player logo URLs
-  player_teams_json <- b$Runtime$evaluate("
+  player_teams_json <- b$Runtime$evaluate(
+    "
     JSON.stringify(
       Array.from(document.querySelectorAll('table tbody tr')).map(row => {
         const img = row.querySelector('img');
@@ -73,17 +84,20 @@ for (page_num in 1:31) {
         return match ? match[1] : '';
       })
     );
-  ")$result$value
-  
+  "
+  )$result$value
+
   team_ids <- fromJSON(player_teams_json)
   salary_table$teamId <- team_ids
   salary_table$team <- team_map[salary_table$teamId]
-  
+
   all_salaries[[page_num]] <- salary_table
 
   # Click next button (if not last page)
   if (page_num < 30) {
-    b$Runtime$evaluate("document.querySelectorAll('button[class*=\"hd3Vfp\"]')[1].click()")
+    b$Runtime$evaluate(
+      "document.querySelectorAll('button[class*=\"hd3Vfp\"]')[1].click()"
+    )
   }
 }
 
@@ -101,23 +115,27 @@ b$Page$loadEventFired()
 Sys.sleep(3)
 
 # Get team names
-teams_json <- b$Runtime$evaluate("
+teams_json <- b$Runtime$evaluate(
+  "
   JSON.stringify(
     Array.from(document.querySelectorAll('.Table--fixed-left .hide-mobile a')).map(a => {
       return a.textContent.trim();
     })
   );
-")$result$value
+"
+)$result$value
 
 # Get PCT values (3rd column in stats table)
-pct_json <- b$Runtime$evaluate("
+pct_json <- b$Runtime$evaluate(
+  "
   JSON.stringify(
     Array.from(document.querySelectorAll('table:not(.Table--fixed-left) tbody tr')).map(row => {
       const cells = row.querySelectorAll('td');
       return cells[2] ? cells[2].textContent.trim() : '';
     })
   );
-")$result$value
+"
+)$result$value
 
 b$close()
 
@@ -179,4 +197,8 @@ salaries_lim <- salaries_df |>
   ) |>
   filter(x2024_25 >= 1157153) # Minimum NBA salary 2024-25
 
-readr::write_csv(salaries_lim, here::here("data/nba_salaries_2024_25.csv"), na = "")
+readr::write_csv(
+  salaries_lim,
+  here::here("data/nba_salaries_2024_25.csv"),
+  na = ""
+)
